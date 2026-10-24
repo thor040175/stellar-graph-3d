@@ -41,7 +41,7 @@ interface GLink { source: string | GNode; target: string | GNode; }
 interface Saved {
   cam?: number[]; target?: number[]; selected?: string[]; focusOn?: boolean;
   colorMode?: "folder" | "age"; expansion?: boolean; disc?: boolean; tilt?: number; spinSpeed?: number; colors?: Record<string, string>;
-  pos?: Record<string, number[]>; query?: string; route?: string[]; tag?: string; sig?: string;
+  pos?: Record<string, number[]>; query?: string; route?: string[]; tag?: string; sig?: string; mini?: number[];
 }
 
 // ---- Texte (Deutsch / Englisch) ----
@@ -63,7 +63,7 @@ const STR: Record<"de" | "en", Record<string, string>> = {
     playTip: "Zeitreise abspielen oder pausieren.",
     speedTip: "Tempo der Zeitreise: 0,25× bis 4×.",
     sliderTip: "Zeitreise: Notizen nach ihrer Entstehung ein- und ausblenden.",
-    miniTip: "Minimap: Klick verschiebt die Kamera dorthin.",
+    miniTip: "Minimap: Klick verschiebt die Kamera dorthin. Ziehen dreht die Karte, Doppelklick setzt sie zurück.",
     searchTip: "Notiz suchen, oder mit # einen Tag als Sternbild anzeigen.",
     legendTip: "Klick: nur diesen Ordner zeigen (mehrere möglich). Klick auf den Punkt: Farbe ändern.",
     helpTitle: "Kurzanleitung", helpTip: "Kurzanleitung zeigen",
@@ -127,7 +127,7 @@ const STR: Record<"de" | "en", Record<string, string>> = {
     playTip: "Play or pause the time travel.",
     speedTip: "Time travel speed: 0.25× to 4×.",
     sliderTip: "Time travel: show and hide notes by creation date.",
-    miniTip: "Minimap: click moves the camera there.",
+    miniTip: "Minimap: click moves the camera there. Drag to rotate the map, double click resets it.",
     searchTip: "Find a note, or type # to show a tag as a constellation.",
     legendTip: "Click: show only this folder (several possible). Click the dot: change color.",
     helpTitle: "Quick guide", helpTip: "Show quick guide",
@@ -1161,14 +1161,41 @@ class GraphView extends ItemView {
     mini.title = t("miniTip");
     const mg = mini.getContext("2d")!;
     let mScale = 1;
-    const miniTop = false;
-    mini.onclick = (e) => {
+    let miniYaw = st.mini?.[0] ?? 0, miniPitch = st.mini?.[1] ?? 0;
+    // Drehung der Karte (Gieren um Y, dann Kippen um X) und ihre Umkehrung
+    const mr = (x: number, y: number, z: number): [number, number, number] => {
+      const cy = Math.cos(miniYaw), sy = Math.sin(miniYaw), cp = Math.cos(miniPitch), sp = Math.sin(miniPitch);
+      const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
+      return [x1, y * cp - z1 * sp, y * sp + z1 * cp];
+    };
+    const mrInv = (x: number, y: number, z: number): [number, number, number] => {
+      const cy = Math.cos(miniYaw), sy = Math.sin(miniYaw), cp = Math.cos(miniPitch), sp = Math.sin(miniPitch);
+      const y1 = y * cp + z * sp, z1 = -y * sp + z * cp;
+      return [x * cy - z1 * sy, y1, x * sy + z1 * cy];
+    };
+    let miniDrag: { x: number; y: number; moved: boolean } | null = null;
+    mini.onpointerdown = (e) => { miniDrag = { x: e.clientX, y: e.clientY, moved: false }; mini.setPointerCapture(e.pointerId); };
+    mini.onpointermove = (e) => {
+      if (!miniDrag) return;
+      const dx = e.clientX - miniDrag.x, dy = e.clientY - miniDrag.y;
+      if (!miniDrag.moved && Math.hypot(dx, dy) < 4) return;
+      miniDrag.moved = true;
+      miniYaw += dx * 0.012; miniPitch = Math.max(-1.5, Math.min(1.5, miniPitch + dy * 0.012));
+      miniDrag.x = e.clientX; miniDrag.y = e.clientY;
+    };
+    mini.onpointerup = (e) => {
+      const d = miniDrag; miniDrag = null;
+      if (!d || d.moved) return;
+      // Klick: Kamera dorthin verschieben (Tiefe bleibt die des aktuellen Ziels)
       const r = mini.getBoundingClientRect();
-      const wx = (((e.clientX - r.left) / r.width) * 300 - 150) / mScale;
-      const wv = (((e.clientY - r.top) / r.height) * 300 - 150) / mScale;
-      const tt = miniTop ? new THREE.Vector3(wx, controls.target.y, wv) : new THREE.Vector3(wx, -wv, controls.target.z);
+      const sx = (((e.clientX - r.left) / r.width) * 300 - 150) / mScale;
+      const sy = -(((e.clientY - r.top) / r.height) * 300 - 150) / mScale;
+      const depth = mr(controls.target.x, controls.target.y, controls.target.z)[2];
+      const w3 = mrInv(sx, sy, depth);
+      const tt = new THREE.Vector3(w3[0], w3[1], w3[2]);
       flyTo(camera.position.clone().add(tt.clone().sub(controls.target)), tt);
     };
+    mini.ondblclick = () => { miniYaw = 0; miniPitch = 0; };
 
     // Hover-Karte
     const card = root.createDiv({ cls: "n3d-card" });
@@ -1310,7 +1337,7 @@ class GraphView extends ItemView {
       this.state = {
         cam: camera.position.toArray(), target: controls.target.toArray(),
         selected: [...selected], focusOn, colorMode, expansion, disc, colors: custom, tilt: tiltDeg, spinSpeed, pos,
-        query: sIn.value, route: lastRoute ?? undefined, tag: activeTag ?? undefined, sig: layoutSig,
+        query: sIn.value, route: lastRoute ?? undefined, tag: activeTag ?? undefined, sig: layoutSig, mini: [miniYaw, miniPitch],
       };
       try { window.localStorage.setItem(this.storeKey(), JSON.stringify(this.state)); } catch { /* egal */ }
     };
@@ -1401,6 +1428,7 @@ class GraphView extends ItemView {
       discK += ((disc ? 1 : 0) - discK) * Math.min(1, dt * 1.6);
       ringK += (((expansion && S.rings) ? 1 : 0) - ringK) * Math.min(1, dt * 2);
       expK += ((expansion ? 1 : 0) - expK) * Math.min(1, dt * 2);
+      const nodeK = 1 - expK * 0.45 * (1 - Math.min(1, 900 / Math.max(N, 1)));
       const timeExp = expansion && isFinite(timeCut);
       const kk = timeExp ? countShown() : N;
       nodes.forEach((n, i) => {
@@ -1472,7 +1500,7 @@ class GraphView extends ItemView {
         m.visible = appear[i] > 0.02;
         if (!m.visible) return;
         m.position.copy(P[i]);
-        let br = actOf(i) ? (i === ai ? 1.8 : spot ? 1.3 : 0.9) : 0.12;
+        let br = (actOf(i) ? (i === ai ? 1.8 : spot ? 1.3 : 0.9) : 0.12) * nodeK;
         let sc = m.userData.base * appear[i];
         if (recent[i]) {
           const ph = Math.sin(nowT * 2.2 + i);
@@ -1707,7 +1735,7 @@ class GraphView extends ItemView {
       // Minimap
       if (frameNo % 2 === 0) {
         if (frameNo % 40 === 2 || frameNo < 5) {
-          const vals = nodes.map((_, i) => Math.max(Math.abs(P[i].x), Math.abs(miniTop ? P[i].z : P[i].y))).sort((a, b) => a - b);
+          const vals = nodes.map((_, i) => { const q = mr(P[i].x, P[i].y, P[i].z); return Math.max(Math.abs(q[0]), Math.abs(q[1])); }).sort((a, b) => a - b);
           mExt = Math.max(40, vals[Math.min(vals.length - 1, Math.floor(vals.length * 0.9))] ?? 100) * 1.15;
         }
         mScale = 140 / mExt;
@@ -1717,12 +1745,17 @@ class GraphView extends ItemView {
           if (appear[i] < 0.05) return;
           mg.globalAlpha = (inSel(n) ? 0.9 : 0.12) * Math.min(1, appear[i]);
           mg.fillStyle = "#" + baseCols[i].getHexString();
-          mg.beginPath(); mg.arc(150 + cl(P[i].x * mScale), 150 + cl((miniTop ? P[i].z : -P[i].y) * mScale), isHole[i] ? 4 : 1.5 + Math.min(2, n.deg * 0.08), 0, Math.PI * 2); mg.fill();
+          const q = mr(P[i].x, P[i].y, P[i].z);
+          const px = 150 + cl(q[0] * mScale), py = 150 - cl(q[1] * mScale);
+          if (isHole[i]) { mg.beginPath(); mg.arc(px, py, 4, 0, Math.PI * 2); mg.fill(); }
+          else { const sz = 1.6 + Math.min(2, n.deg * 0.08); mg.fillRect(px - sz / 2, py - sz / 2, sz, sz); }
         });
         mg.globalAlpha = 0.9; mg.strokeStyle = "#ffffff"; mg.lineWidth = 2;
-        const tx = 150 + cl(controls.target.x * mScale), ty = 150 + cl((miniTop ? controls.target.z : -controls.target.y) * mScale);
+        const tq = mr(controls.target.x, controls.target.y, controls.target.z);
+        const tx = 150 + cl(tq[0] * mScale), ty = 150 - cl(tq[1] * mScale);
         mg.beginPath(); mg.arc(tx, ty, 9, 0, Math.PI * 2); mg.stroke();
-        const cx2 = 150 + cl(camera.position.x * mScale), cy2 = 150 + cl((miniTop ? camera.position.z : -camera.position.y) * mScale);
+        const cq = mr(camera.position.x, camera.position.y, camera.position.z);
+        const cx2 = 150 + cl(cq[0] * mScale), cy2 = 150 - cl(cq[1] * mScale);
         mg.globalAlpha = 0.5; mg.beginPath(); mg.moveTo(tx, ty); mg.lineTo(cx2, cy2); mg.stroke();
         mg.globalAlpha = 1;
       }
