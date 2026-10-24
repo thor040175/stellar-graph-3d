@@ -751,7 +751,9 @@ class GraphView extends ItemView {
     let focusNode: GNode | null = null;
     let colorMode: "folder" | "age" = st.colorMode ?? "folder";
     let expansion = !!st.expansion;
-    let disc = !!st.disc, discK = disc ? 1 : 0, discT = 0, ringK = 0;
+    let disc = !!st.disc, discK = disc ? 1 : 0, discT = 0, ringK = 0, expK = expansion ? 1 : 0;
+    // Große Vaults: Nebel dünner, damit sie nicht zu einem Farbnebel verschmelzen
+    const nebK = Math.min(1, Math.pow(900 / Math.max(N, 1), 0.3));
     let tiltDeg = st.tilt ?? 60, spinSpeed = st.spinSpeed ?? 1, orbAng = 0;
     let searchHits = new Set<string>();
     let hovered: GNode | null = null;
@@ -1398,6 +1400,7 @@ class GraphView extends ItemView {
       const ca = Math.cos(orbAng), sa = Math.sin(orbAng);
       discK += ((disc ? 1 : 0) - discK) * Math.min(1, dt * 1.6);
       ringK += (((expansion && S.rings) ? 1 : 0) - ringK) * Math.min(1, dt * 2);
+      expK += ((expansion ? 1 : 0) - expK) * Math.min(1, dt * 2);
       const timeExp = expansion && isFinite(timeCut);
       const kk = timeExp ? countShown() : N;
       nodes.forEach((n, i) => {
@@ -1626,7 +1629,7 @@ class GraphView extends ItemView {
         const d = camera.position.distanceTo(nb.sprite.position);
         const clear = Math.min(1, Math.max(0, (d - r * 0.5) / (r * 1.3)));
         const fade = clear * clear * (3 - 2 * clear);
-        (nb.sprite.material as THREE.SpriteMaterial).opacity = 0.14 * S.nebula * fade * (selected.size === 0 ? 1 : selOk ? 1.6 : 0.12) * (spot ? 0.4 : 1);
+        (nb.sprite.material as THREE.SpriteMaterial).opacity = 0.14 * S.nebula * nebK * (1 - 0.35 * expK) * fade * (selected.size === 0 ? 1 : selOk ? 1.6 : 0.12) * (spot ? 0.4 : 1);
         tmp.set(cx, cy, cz).project(camera);
         const vis = tmp.z < 1 && !anchor && !spot && fade > 0.15 && selOk && S.nebula > 0.05;
         nb.label.toggleClass("on", vis);
