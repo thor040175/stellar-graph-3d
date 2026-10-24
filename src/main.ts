@@ -9,7 +9,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 // @ts-ignore
 import { forceSimulation, forceLink, forceManyBody, forceCenter } from "d3-force-3d";
 
-const VIEW_TYPE = "galaxy-graph-3d";
+const VIEW_TYPE = "stellar-graph-3d";
 const PALETTES: Record<string, number[]> = {
   galaxy: [0x7aa2ff, 0xff7ab8, 0x7affc8, 0xffd27a, 0xb07aff, 0xff9a7a, 0x7ae6ff, 0xc8ff7a, 0xff7a7a, 0x9aa5c8],
   nebula: [0xa78bfa, 0xf0abfc, 0x93c5fd, 0x67e8f9, 0xfda4af, 0xc4b5fd, 0x86efac, 0xfde68a, 0xfdba74, 0x94a3b8],
@@ -87,7 +87,7 @@ const STR: Record<"de" | "en", Record<string, string>> = {
     cineHint: "Klick oder Esc beendet den Kinomodus", photoSaved: "Foto gespeichert (Downloads-Ordner).",
     videoStart: "Aufnahme läuft – nochmal klicken zum Beenden.", videoSaved: "Video gespeichert (Downloads-Ordner).",
     videoUnsupported: "Videoaufnahme wird hier nicht unterstützt.", ringOld: "älteste", ringNew: "frischeste", timelapse: "Zeitraffer aufnehmen",
-    sTitle: "Galaxy Graph 3D", sLanguage: "Sprache", sLanguageD: "Sprache der Oberfläche.", sLangAuto: "Automatisch",
+    sTitle: "Stellar Graph 3D", sLanguage: "Sprache", sLanguageD: "Sprache der Oberfläche.", sLangAuto: "Automatisch",
     sComets: "Kometen", sCometsD: "Anzahl der Lichtpunkte auf den Kanten. 0 schaltet sie ab.",
     sGlow: "Glow", sGlowD: "Stärke des Leuchtens (Bloom).", sNebula: "Nebel", sNebulaD: "Deckkraft der Ordner-Nebel.",
     sShooting: "Sternschnuppen", sShootingD: "Gelegentliche Sternschnuppen im Hintergrund.",
@@ -150,7 +150,7 @@ const STR: Record<"de" | "en", Record<string, string>> = {
     cineHint: "Click or Esc exits cinema mode", photoSaved: "Photo saved (Downloads folder).",
     videoStart: "Recording – click again to stop.", videoSaved: "Video saved (Downloads folder).",
     videoUnsupported: "Video recording is not supported here.", ringOld: "oldest", ringNew: "newest", timelapse: "Record timelapse",
-    sTitle: "Galaxy Graph 3D", sLanguage: "Language", sLanguageD: "Interface language.", sLangAuto: "Automatic",
+    sTitle: "Stellar Graph 3D", sLanguage: "Language", sLanguageD: "Interface language.", sLangAuto: "Automatic",
     sComets: "Comets", sCometsD: "Number of light points running along links. 0 turns them off.",
     sGlow: "Glow", sGlowD: "Strength of the glow (bloom).", sNebula: "Nebulae", sNebulaD: "Opacity of the folder nebulae.",
     sShooting: "Shooting stars", sShootingD: "Occasional shooting stars in the background.",
@@ -177,7 +177,7 @@ const resolveLang = (s: Settings): "de" | "en" => (s.language === "auto" ? (Stri
 const makeT = (lang: "de" | "en") => (key: string, ...args: (string | number)[]) =>
   (STR[lang][key] ?? key).replace(/\{(\d)\}/g, (_, n) => String(args[+n] ?? ""));
 
-export default class GalaxyGraph3D extends Plugin {
+export default class StellarGraph3D extends Plugin {
   settings: Settings = { ...DEFAULTS };
   private refreshTimer = 0;
 
@@ -204,7 +204,7 @@ export default class GalaxyGraph3D extends Plugin {
 }
 
 class GraphSettingTab extends PluginSettingTab {
-  constructor(app: App, private plugin: GalaxyGraph3D) { super(app, plugin); }
+  constructor(app: App, private plugin: StellarGraph3D) { super(app, plugin); }
   display() {
     const el = this.containerEl;
     el.empty();
@@ -332,22 +332,22 @@ class GraphView extends ItemView {
   private state: Saved | null = null;
   private rebuildTimer = 0;
 
-  constructor(leaf: WorkspaceLeaf, private plugin: GalaxyGraph3D) { super(leaf); }
+  constructor(leaf: WorkspaceLeaf, private plugin: StellarGraph3D) { super(leaf); }
 
   getViewType() { return VIEW_TYPE; }
-  getDisplayText() { return "Galaxy Graph 3D"; }
+  getDisplayText() { return "Stellar Graph 3D"; }
   getIcon() { return "orbit"; }
 
-  private storeKey() { return "galaxy-graph-3d:" + this.app.vault.getName(); }
-  /** Einmalige Übernahme des Zustands aus der alten Vorab-Version (vor der Umbenennung). */
-  private legacyKey() { return "noekk-graph-3d:" + this.app.vault.getName(); }
+  private storeKey() { return "stellar-graph-3d:" + this.app.vault.getName(); }
+  /** Einmalige Übernahme des Zustands aus den Vorab-Versionen (vor den Umbenennungen). */
+  private legacyKeys() { return ["galaxy-graph-3d:", "noekk-graph-3d:"].map((k) => k + this.app.vault.getName()); }
 
   async onOpen() {
     const root = this.contentEl;
     root.empty();
     root.addClass("n3d-root");
     root.style.padding = "0";
-    try { const raw = window.localStorage.getItem(this.storeKey()) ?? window.localStorage.getItem(this.legacyKey()); if (raw) this.state = JSON.parse(raw); } catch { /* ohne Gedächtnis weiter */ }
+    try { const raw = [this.storeKey(), ...this.legacyKeys()].map((k) => window.localStorage.getItem(k)).find((v) => v); if (raw) this.state = JSON.parse(raw); } catch { /* ohne Gedächtnis weiter */ }
     const sv = this.plugin.settings.startView;
     if (sv !== "default") {
       this.state = { ...(this.state ?? {}), expansion: true, disc: sv === "spiral" };

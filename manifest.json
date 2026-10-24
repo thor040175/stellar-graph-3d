@@ -1,6 +1,6 @@
 {
-  "id": "galaxy-graph-3d",
-  "name": "Galaxy Graph 3D",
+  "id": "stellar-graph-3d",
+  "name": "Stellar Graph 3D",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
   "description": "Explore your notes as a glowing 3D galaxy: comets along links, time travel, spiral mode, routes, constellations and more.",

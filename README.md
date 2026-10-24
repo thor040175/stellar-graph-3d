@@ -1,4 +1,4 @@
-# Galaxy Graph 3D
+# Stellar Graph 3D
 
 A 3D graph view for [Obsidian](https://obsidian.md) that looks like a galaxy. Notes are stars, links are comets' paths, folders are nebulae.
 
@@ -37,8 +37,8 @@ Click a button's tooltip or press `?` in the graph for a quick guide.
 Not yet in the community plugin list. Manual installation:
 
 1. Download `main.js`, `manifest.json` and `styles.css` from the latest release.
-2. Put them in `<your vault>/.obsidian/plugins/galaxy-graph-3d/`.
-3. Reload Obsidian and enable **Galaxy Graph 3D** under *Settings → Community plugins*.
+2. Put them in `<your vault>/.obsidian/plugins/stellar-graph-3d/`.
+3. Reload Obsidian and enable **Stellar Graph 3D** under *Settings → Community plugins*.
 4. Open the graph from the ribbon icon or the command **Open 3D graph**.
 
 Desktop only (it needs WebGL).
@@ -53,7 +53,7 @@ Everything runs locally in your vault. For large vaults turn on *Performance mod
 
 ## Privacy
 
-Galaxy Graph 3D makes no network requests and collects no data. It stores your view (camera, selected folders, colors) in the app's local storage and your settings in the plugin's `data.json`. Photos and videos are saved to your Downloads folder only when you press the buttons.
+Stellar Graph 3D makes no network requests and collects no data. It stores your view (camera, selected folders, colors) in the app's local storage and your settings in the plugin's `data.json`. Photos and videos are saved to your Downloads folder only when you press the buttons.
 
 ## Development
 
@@ -61,14 +61,14 @@ Galaxy Graph 3D makes no network requests and collects no data. It stores your v
 npm install
 npm run build        # writes main.js into the project folder
 # optional: copy into a vault after each build
-GALAXY_GRAPH_VAULT="/path/to/vault" npm run dev
+STELLAR_GRAPH_VAULT="/path/to/vault" npm run dev
 ```
 
 Built with TypeScript, [three.js](https://threejs.org) and [d3-force-3d](https://github.com/vasturiano/d3-force-3d).
 
 ## Support
 
-Galaxy Graph 3D is free and open source. If it makes exploring your notes more fun, you can [buy me a coffee](https://buymeacoffee.com/thor040175). Thank you!
+Stellar Graph 3D is free and open source. If it makes exploring your notes more fun, you can [buy me a coffee](https://buymeacoffee.com/thor040175). Thank you!
 
 ## Credits and licenses
 
