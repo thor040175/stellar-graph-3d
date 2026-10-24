@@ -4,13 +4,13 @@ A 3D graph view for [Obsidian](https://obsidian.md) that looks like a galaxy. No
 
 ![A vault as a galaxy: folders are colored star clusters, hubs are bright cores](docs/hero.jpg)
 
-Time travel: watch the vault grow note by note.
+Time travel: watch the vault grow note by note, from the first note to today.
 
-![Time travel through a vault of 2,600 notes](docs/timelapse.gif)
+![Time travel through a vault of 780 notes](docs/timelapse.gif)
 
-Expansion layout with age colors: the oldest notes sit outside, the freshest in the core, and the biggest hubs turn into black holes with gravitational lensing.
+The biggest hubs turn into black holes with an accretion disk and gravitational lensing. Folders appear as nebulae in their own colors.
 
-![Black holes and expansion layout](docs/black-holes.jpg)
+![A vault of 780 notes with three black holes](docs/black-holes.jpg)
 
 *All images show a fictional demo vault.*
 
