@@ -765,7 +765,7 @@ class GraphView extends ItemView {
     let spotPairs: Set<number> | null = null;
     let routeMode = false, routeA = -1;
     let lastRoute: string[] | null = null, activeTag: string | null = null;
-    let quality = 0, slowFrames = 0, fpsAvg = 60, lastDowngrade = 0;
+    let quality = 0, slowFrames = 0, fastFrames = 0, fpsAvg = 60, lastDowngrade = 0, lastUpgrade = -99, upDelay = 20, throttleNotified = false;
     let pendingRestore: (() => void) | null = null;
     const COMET_Q = [1, 0.5, 0.2];
     const cinema = { on: false, step: -1, wait: 0, target: -1 };
@@ -1366,11 +1366,19 @@ class GraphView extends ItemView {
 
     const downgrade = (nowT: number) => {
       quality++; lastDowngrade = nowT;
+      // Wenn es kurz nach einer Rückschaltung wieder zu langsam wird, länger warten, bevor die Effekte erneut hochgeschaltet werden
+      if (nowT - lastUpgrade < 60) upDelay = Math.min(300, upDelay * 2);
       if (quality === 1) { composer.setPixelRatio(1); renderer.setPixelRatio(1); renderer.setSize(w(), h()); composer.setSize(w(), h()); }
       if (quality === 2) { lensPass.enabled = false; orbPoints.visible = false; }
       const live = Math.round(cometN * COMET_Q[Math.min(quality, 2)]);
       for (let c = live; c < cometN; c++) { cLink[c] = -1; for (let j = 0; j < TR * 3; j++) cCol[c * TR * 3 + j] = 0; }
-      if (quality === 1) new Notice(t("throttle"));
+      if (!throttleNotified) { throttleNotified = true; new Notice(t("throttle")); }
+    };
+    // Bleibt die Bildrate lange hoch (z. B. nach einer kurzen Last durch Aufnahme oder andere Programme), kommen die Effekte stufenweise zurück
+    const upgrade = (nowT: number) => {
+      quality--; lastDowngrade = nowT; lastUpgrade = nowT; fpsAvg = 45;
+      if (quality === 1) { lensPass.enabled = S.lens && !S.performance && holeNodes.length > 0; orbPoints.visible = true; }
+      if (quality === 0) { const pr = Math.min(window.devicePixelRatio, 2); composer.setPixelRatio(pr); renderer.setPixelRatio(pr); renderer.setSize(w(), h()); composer.setSize(w(), h()); }
     };
 
     const frame = () => {
@@ -1381,10 +1389,12 @@ class GraphView extends ItemView {
       const dt = Math.min(0.05, rawDt); lastT = nowT; frameNo++;
       if (rawDt > 0 && rawDt < 0.25) fpsEma += (1 / rawDt - fpsEma) * 0.05;
       if (S.showStats && frameNo % 20 === 0) statsEl.setText(`${Math.round(fpsEma)} fps · ${N} notes · ${links.length} links · effects ${quality === 0 ? "full" : quality === 1 ? "reduced" : "minimal"} · ${renderer.info.render.calls} draw calls`);
-      if (S.autoThrottle && !S.performance && quality < 2 && frameNo > 180 && rawDt > 0 && rawDt < 0.25 && !rec) {
+      if (S.autoThrottle && !S.performance && frameNo > 180 && rawDt > 0 && rawDt < 0.25 && !rec) {
         fpsAvg += (1 / rawDt - fpsAvg) * 0.04;
         slowFrames = fpsAvg < 38 ? slowFrames + 1 : 0;
-        if (slowFrames > 150 && nowT - lastDowngrade > 6) { slowFrames = 0; downgrade(nowT); }
+        fastFrames = fpsAvg > 56 ? fastFrames + 1 : 0;
+        if (quality < 2 && slowFrames > 150 && nowT - lastDowngrade > 6) { slowFrames = 0; downgrade(nowT); }
+        else if (quality > 0 && fastFrames > 600 && nowT - lastDowngrade > upDelay) { fastFrames = 0; upgrade(nowT); }
       }
 
       // Kamera-Flug, Route-Tour, Kino
