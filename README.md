@@ -12,6 +12,10 @@ The biggest hubs turn into black holes with an accretion disk and gravitational 
 
 ![A vault of 780 notes with three black holes](docs/black-holes.jpg)
 
+Galaxy mode (expansion layout with age colors): the oldest notes sit outside in red, the freshest ones glow in the core.
+
+![Expansion layout with age colors](docs/galaxy-mode.jpg)
+
 *All images show a fictional demo vault.*
 
 ## Features
