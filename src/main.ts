@@ -26,14 +26,14 @@ interface Settings {
   holeMinLinks: number; excludeFolders: string; palette: string; ageBasis: "mtime" | "ctime";
   performance: boolean; cameraReverse: boolean; startView: "default" | "expansion" | "spiral"; spinClockwise: boolean;
   darkMatter: boolean; moons: boolean; planets: boolean; rings: boolean; lens: boolean;
-  sound: boolean; volume: number; autoThrottle: boolean; subClusters: boolean;
+  sound: boolean; volume: number; autoThrottle: boolean; subClusters: boolean; showStats: boolean;
 }
 const DEFAULTS: Settings = {
   language: "auto", cometCount: 260, glow: 0.35, nebula: 1, shootingStars: true, pulseDays: 7, timeSeconds: 60,
   holeMinLinks: 10, excludeFolders: "", palette: "galaxy", ageBasis: "mtime",
   performance: false, cameraReverse: false, startView: "default", spinClockwise: true,
   darkMatter: true, moons: true, planets: true, rings: true, lens: true,
-  sound: false, volume: 0.5, autoThrottle: true, subClusters: true,
+  sound: false, volume: 0.5, autoThrottle: true, subClusters: true, showStats: false,
 };
 
 interface GNode { id: string; path: string; name: string; folder: string; deg: number; mtime: number; ctime: number; x?: number; y?: number; z?: number; }
@@ -74,6 +74,7 @@ const STR: Record<"de" | "en", Record<string, string>> = {
     help9: "Rötliche / bläuliche Punkte|Monde: offene Aufgaben · Planeten: Anhänge", help10: "Zeitleiste|▶ abspielen · ⏺ als Video aufnehmen · Tempo-Knopf",
     help11: "Esc|Route, Sternbild, Hilfe oder Kinomodus beenden",
     throttle: "Niedrige Bildrate: Effekte wurden automatisch reduziert. Mehr Optionen in den Einstellungen (Performance-Modus).",
+    sStats: "Bildrate anzeigen", sStatsD: "Zeigt Bildrate, Zahl der Notizen und Links und die Effekt-Stufe oben im Graphen. Praktisch zum Testen großer Vaults.",
     sAuto: "Effekte automatisch drosseln", sAutoD: "Schaltet Kometen und Zusatzeffekte herunter, wenn die Bildrate dauerhaft niedrig ist.",
     sSub: "Unterordner als Sternhaufen", sSubD: "Notizen im selben Unterordner rücken enger zusammen.", tilt: "Neigung", spinSpeed: "Drehung",
     reorderTip: "Layout neu berechnen: Die Sterne ordnen sich anhand ihrer Verbindungen neu.", rotationTip: "Kamera-Rotation an oder aus", search: "Stern suchen … oder #tag", showAll: "Alle anzeigen",
@@ -137,6 +138,7 @@ const STR: Record<"de" | "en", Record<string, string>> = {
     help9: "Reddish / bluish points|Moons: open tasks · Planets: attachments", help10: "Timeline|▶ play · ⏺ record as video · speed button",
     help11: "Esc|End route, constellation, guide or cinema mode",
     throttle: "Low frame rate: effects were reduced automatically. More options in the settings (performance mode).",
+    sStats: "Show frame rate", sStatsD: "Shows frame rate, number of notes and links and the effect level at the top of the graph. Handy for testing large vaults.",
     sAuto: "Throttle effects automatically", sAutoD: "Turns down comets and extra effects when the frame rate stays low.",
     sSub: "Subfolders as star clusters", sSubD: "Notes in the same subfolder move closer together.", tilt: "Tilt", spinSpeed: "Spin",
     reorderTip: "Recompute the layout: stars settle again based on their links.", rotationTip: "Camera rotation on or off", search: "Find star … or #tag", showAll: "Show all",
@@ -237,7 +239,7 @@ class GraphSettingTab extends PluginSettingTab {
     new Setting(el).setName(t("sHoles")).setDesc(t("sHolesD")).addSlider((x) => x.setLimits(3, 40, 1).setValue(s.holeMinLinks).setDynamicTooltip().onChange(async (v) => { s.holeMinLinks = v; await save(); }));
 
     const toggles: [keyof Settings, string][] = [
-      ["shootingStars", "Shooting"], ["darkMatter", "Dark"], ["moons", "Moons"], ["planets", "Planets"], ["rings", "Rings"], ["lens", "Lens"], ["performance", "Perf"], ["cameraReverse", "CamRev"], ["autoThrottle", "Auto"], ["subClusters", "Sub"], ["sound", "Sound"],
+      ["shootingStars", "Shooting"], ["darkMatter", "Dark"], ["moons", "Moons"], ["planets", "Planets"], ["rings", "Rings"], ["lens", "Lens"], ["performance", "Perf"], ["cameraReverse", "CamRev"], ["autoThrottle", "Auto"], ["subClusters", "Sub"], ["showStats", "Stats"], ["sound", "Sound"],
     ];
     toggles.forEach(([key, k]) => new Setting(el).setName(t("s" + k)).setDesc(t("s" + k + "D"))
       .addToggle((x) => x.setValue(s[key] as boolean).onChange(async (v) => { (s[key] as boolean) = v; await save(); })));
@@ -957,6 +959,9 @@ class GraphView extends ItemView {
     soundBtn.toggleClass("active", soundOn);
     mkBtn(t("reorder"), () => sim.alpha(1).restart()).title = t("reorderTip");
     mkBtn(t("reset"), () => flyTo(new THREE.Vector3(0, 0, 320), new THREE.Vector3(0, 0, 0))).title = t("resetTip");
+    const statsEl = root.createDiv({ cls: "n3d-stats" });
+    statsEl.style.display = S.showStats ? "" : "none";
+    let fpsEma = 60;
     const help = root.createDiv({ cls: "n3d-help" });
     help.style.display = "none";
     help.createDiv({ cls: "h", text: t("helpTitle") });
@@ -1342,6 +1347,8 @@ class GraphView extends ItemView {
       const nowT = performance.now() / 1000;
       const rawDt = nowT - lastT;
       const dt = Math.min(0.05, rawDt); lastT = nowT; frameNo++;
+      if (rawDt > 0 && rawDt < 0.25) fpsEma += (1 / rawDt - fpsEma) * 0.05;
+      if (S.showStats && frameNo % 20 === 0) statsEl.setText(`${Math.round(fpsEma)} fps · ${N} notes · ${links.length} links · effects ${quality === 0 ? "full" : quality === 1 ? "reduced" : "minimal"} · ${renderer.info.render.calls} draw calls`);
       if (S.autoThrottle && !S.performance && quality < 2 && frameNo > 180 && rawDt > 0 && rawDt < 0.25 && !rec) {
         fpsAvg += (1 / rawDt - fpsAvg) * 0.04;
         slowFrames = fpsAvg < 38 ? slowFrames + 1 : 0;

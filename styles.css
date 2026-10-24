@@ -65,3 +65,5 @@
 .n3d-help .k{flex:0 0 170px;color:#ffd9a0}
 .n3d-help .d{color:#c4cbef}
 .n3d-cinema .n3d-help{display:none !important}
+.n3d-stats{position:absolute;left:50%;top:10px;transform:translateX(-50%);font:11px ui-monospace,Consolas,monospace;color:#9fe3b0;background:rgba(10,12,24,.65);padding:3px 12px;border-radius:999px;pointer-events:none;z-index:4;white-space:nowrap}
+.n3d-cinema .n3d-stats{display:none !important}
