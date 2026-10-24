@@ -1,0 +1,75 @@
+# Galaxy Graph 3D
+
+A 3D graph view for [Obsidian](https://obsidian.md) that looks like a galaxy. Notes are stars, links are comets' paths, folders are nebulae.
+
+> Screenshots and a short demo GIF will go here.
+
+## Features
+
+**Look**
+- Glowing stars sized by link count, star dust, folder nebulae that clear when you zoom in
+- Comets running along links, shooting stars, black holes with an accretion disk and gravitational lensing for the biggest hubs
+- Recently edited notes pulse, unlinked notes drift on the outer rim
+
+**Navigation**
+- Search with fly-to, focus mode, hover cards with a preview, minimap
+- Clickable legend: filter folders, pick your own folder colors
+- Route: shortest link path between two notes
+- Constellations: type `#tag` in the search to draw a tag as a constellation
+- Cinema mode: an automatic camera tour without any controls
+
+**Time and shape**
+- Time travel: watch your vault grow note by note, with adjustable speed
+- Age colors (fresh = blue-white, dusty = red) and an expansion layout (oldest notes outside, freshest in the core)
+- Spiral mode: flattens the graph into a rotating spiral galaxy with tilt and spin sliders
+
+**Living vault**
+- Live updates: new notes appear as new stars, edits flash, deleted notes fade out in a small supernova
+- Dark matter: links to notes that do not exist yet appear as violet ghost points. Click one to create the note
+- Moons: open tasks (`- [ ]`) orbit their note. Planets: linked attachments such as images and PDFs
+- Photo (PNG) and video (WebM) capture, including a one-click time travel timelapse
+- Optional soft ambient sound
+
+Click a button's tooltip or press `?` in the graph for a quick guide.
+
+## Installation
+
+Not yet in the community plugin list. Manual installation:
+
+1. Download `main.js`, `manifest.json` and `styles.css` from the latest release.
+2. Put them in `<your vault>/.obsidian/plugins/galaxy-graph-3d/`.
+3. Reload Obsidian and enable **Galaxy Graph 3D** under *Settings → Community plugins*.
+4. Open the graph from the ribbon icon or the command **Open 3D graph**.
+
+Desktop only (it needs WebGL).
+
+## Settings
+
+Language, start view, spin direction, color palette (including a color-blind safe one), age measure, hidden folders, pulse period, glow, nebula opacity, comet count, black hole threshold, time travel duration, and switches for the extra effects, performance mode, automatic throttling and sound. The ⚙ button in the graph opens them directly.
+
+## Performance
+
+Everything runs locally in your vault. For large vaults turn on *Performance mode*, or leave *Throttle effects automatically* on: the plugin lowers its effects when the frame rate stays low.
+
+## Privacy
+
+Galaxy Graph 3D makes no network requests and collects no data. It stores your view (camera, selected folders, colors) in the app's local storage and your settings in the plugin's `data.json`. Photos and videos are saved to your Downloads folder only when you press the buttons.
+
+## Development
+
+```bash
+npm install
+npm run build        # writes main.js into the project folder
+# optional: copy into a vault after each build
+GALAXY_GRAPH_VAULT="/path/to/vault" npm run dev
+```
+
+Built with TypeScript, [three.js](https://threejs.org) and [d3-force-3d](https://github.com/vasturiano/d3-force-3d).
+
+## Credits and licenses
+
+- three.js, MIT License
+- d3-force-3d, MIT License
+- This plugin was created with the help of an AI assistant (Claude by Anthropic) and directed and tested by a human author.
+
+Released under the [MIT License](LICENSE).

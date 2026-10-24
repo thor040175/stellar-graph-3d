@@ -1,0 +1,20 @@
+{
+  "name": "galaxy-graph-3d",
+  "version": "0.1.0",
+  "description": "A 3D graph view for Obsidian that looks like a galaxy.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs watch"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/three": "^0.170.0",
+    "d3-force-3d": "^3.0.5",
+    "esbuild": "^0.25.0",
+    "obsidian": "latest",
+    "three": "^0.170.0",
+    "typescript": "^5.6.0"
+  }
+}
