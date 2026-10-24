@@ -1,6 +1,6 @@
 {
   "name": "stellar-graph-3d",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A 3D graph view for Obsidian that looks like a galaxy.",
   "license": "MIT",
   "private": true,

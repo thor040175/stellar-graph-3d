@@ -2,6 +2,8 @@
 
 A 3D graph view for [Obsidian](https://obsidian.md) that looks like a galaxy. Notes are stars, links are comets' paths, folders are nebulae.
 
+<a href="https://buymeacoffee.com/thor040175"><img src="docs/buy-me-a-coffee.svg" alt="Buy me a coffee" width="170"></a>
+
 ![A vault as a galaxy: folders are colored star clusters, hubs are bright cores](docs/hero.jpg)
 
 Time travel: watch the vault grow note by note, from the first note to today.
