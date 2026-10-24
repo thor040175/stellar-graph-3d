@@ -66,6 +66,10 @@ GALAXY_GRAPH_VAULT="/path/to/vault" npm run dev
 
 Built with TypeScript, [three.js](https://threejs.org) and [d3-force-3d](https://github.com/vasturiano/d3-force-3d).
 
+## Support
+
+Galaxy Graph 3D is free and open source. If it makes exploring your notes more fun, you can [buy me a coffee](https://buymeacoffee.com/thor040175). Thank you!
+
 ## Credits and licenses
 
 - three.js, MIT License
