@@ -26,14 +26,14 @@ interface Settings {
   holeMinLinks: number; excludeFolders: string; palette: string; ageBasis: "mtime" | "ctime";
   performance: boolean; cameraReverse: boolean; startView: "default" | "expansion" | "spiral"; spinClockwise: boolean;
   darkMatter: boolean; moons: boolean; planets: boolean; rings: boolean; lens: boolean;
-  sound: boolean; volume: number; autoThrottle: boolean; subClusters: boolean; showStats: boolean;
+  sound: boolean; volume: number; autoThrottle: boolean; subClusters: boolean; showStats: boolean; denseCore: boolean;
 }
 const DEFAULTS: Settings = {
   language: "auto", cometCount: 260, glow: 0.35, nebula: 1, shootingStars: true, pulseDays: 7, timeSeconds: 60,
   holeMinLinks: 10, excludeFolders: "", palette: "galaxy", ageBasis: "mtime",
   performance: false, cameraReverse: false, startView: "default", spinClockwise: true,
   darkMatter: true, moons: true, planets: true, rings: true, lens: true,
-  sound: false, volume: 0.5, autoThrottle: true, subClusters: true, showStats: false,
+  sound: false, volume: 0.5, autoThrottle: true, subClusters: true, showStats: false, denseCore: false,
 };
 
 interface GNode { id: string; path: string; name: string; folder: string; deg: number; mtime: number; ctime: number; x?: number; y?: number; z?: number; }
@@ -74,6 +74,7 @@ const STR: Record<"de" | "en", Record<string, string>> = {
     help9: "Rötliche / bläuliche Punkte|Monde: offene Aufgaben · Planeten: Anhänge", help10: "Zeitleiste|▶ abspielen · ⏺ als Video aufnehmen · Tempo-Knopf",
     help11: "Esc|Route, Sternbild, Hilfe oder Kinomodus beenden",
     throttle: "Niedrige Bildrate: Effekte wurden automatisch reduziert. Mehr Optionen in den Einstellungen (Performance-Modus).",
+    sDense: "Dichter, heller Kern", sDenseD: "Schaltet die Helligkeits- und Dichte-Anpassungen für große Vaults ab: Im Expansionsmodus sitzen alle Notizen dicht im Kern, der Kern leuchtet maximal.",
     sStats: "Bildrate anzeigen", sStatsD: "Zeigt Bildrate, Zahl der Notizen und Links und die Effekt-Stufe oben im Graphen. Praktisch zum Testen großer Vaults.",
     sAuto: "Effekte automatisch drosseln", sAutoD: "Schaltet Kometen und Zusatzeffekte herunter, wenn die Bildrate dauerhaft niedrig ist.",
     sSub: "Unterordner als Sternhaufen", sSubD: "Notizen im selben Unterordner rücken enger zusammen.", tilt: "Neigung", spinSpeed: "Drehung",
@@ -138,6 +139,7 @@ const STR: Record<"de" | "en", Record<string, string>> = {
     help9: "Reddish / bluish points|Moons: open tasks · Planets: attachments", help10: "Timeline|▶ play · ⏺ record as video · speed button",
     help11: "Esc|End route, constellation, guide or cinema mode",
     throttle: "Low frame rate: effects were reduced automatically. More options in the settings (performance mode).",
+    sDense: "Dense, bright core", sDenseD: "Turns off the brightness and density adjustments for large vaults: in expansion layout all notes sit tightly in the core and the core glows at full strength.",
     sStats: "Show frame rate", sStatsD: "Shows frame rate, number of notes and links and the effect level at the top of the graph. Handy for testing large vaults.",
     sAuto: "Throttle effects automatically", sAutoD: "Turns down comets and extra effects when the frame rate stays low.",
     sSub: "Subfolders as star clusters", sSubD: "Notes in the same subfolder move closer together.", tilt: "Tilt", spinSpeed: "Spin",
@@ -239,7 +241,7 @@ class GraphSettingTab extends PluginSettingTab {
     new Setting(el).setName(t("sHoles")).setDesc(t("sHolesD")).addSlider((x) => x.setLimits(3, 40, 1).setValue(s.holeMinLinks).setDynamicTooltip().onChange(async (v) => { s.holeMinLinks = v; await save(); }));
 
     const toggles: [keyof Settings, string][] = [
-      ["shootingStars", "Shooting"], ["darkMatter", "Dark"], ["moons", "Moons"], ["planets", "Planets"], ["rings", "Rings"], ["lens", "Lens"], ["performance", "Perf"], ["cameraReverse", "CamRev"], ["autoThrottle", "Auto"], ["subClusters", "Sub"], ["showStats", "Stats"], ["sound", "Sound"],
+      ["shootingStars", "Shooting"], ["darkMatter", "Dark"], ["moons", "Moons"], ["planets", "Planets"], ["rings", "Rings"], ["lens", "Lens"], ["performance", "Perf"], ["cameraReverse", "CamRev"], ["autoThrottle", "Auto"], ["subClusters", "Sub"], ["showStats", "Stats"], ["denseCore", "Dense"], ["sound", "Sound"],
     ];
     toggles.forEach(([key, k]) => new Setting(el).setName(t("s" + k)).setDesc(t("s" + k + "D"))
       .addToggle((x) => x.setValue(s[key] as boolean).onChange(async (v) => { (s[key] as boolean) = v; await save(); })));
@@ -412,7 +414,7 @@ class GraphView extends ItemView {
     }));
     const N = nodes.length;
     // Expansionsschalen: bei vielen Notizen flacher als linear, damit der Kern nicht ausbrennt
-    const shellP = 1 - 0.5 * Math.min(1, Math.max(0, (N - 600) / 2000));
+    const shellP = S.denseCore ? 1 : 1 - 0.5 * Math.min(1, Math.max(0, (N - 600) / 2000));
     const shell = (f: number) => 34 + 210 * Math.pow(Math.max(0, Math.min(1, f)), shellP);
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const idx = new Map(nodes.map((n, i) => [n.id, i]));
@@ -521,7 +523,7 @@ class GraphView extends ItemView {
 
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(w(), h()), S.glow * Math.min(1, Math.pow(1500 / Math.max(N, 1), 0.4)), S.performance ? 0.3 : 0.45, 0.55));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(w(), h()), S.glow * (S.denseCore ? 1 : Math.min(1, Math.pow(1500 / Math.max(N, 1), 0.4))), S.performance ? 0.3 : 0.45, 0.55));
     const lensPass = new ShaderPass(LENS_SHADER);
     lensPass.enabled = S.lens && !S.performance && holeNodes.length > 0;
     composer.addPass(lensPass);
@@ -754,7 +756,7 @@ class GraphView extends ItemView {
     let expansion = !!st.expansion;
     let disc = !!st.disc, discK = disc ? 1 : 0, discT = 0, ringK = 0, expK = expansion ? 1 : 0;
     // Große Vaults: Nebel dünner, damit sie nicht zu einem Farbnebel verschmelzen
-    const nebK = Math.min(1, Math.pow(900 / Math.max(N, 1), 0.3));
+    const nebK = S.denseCore ? 1 : Math.min(1, Math.pow(900 / Math.max(N, 1), 0.3));
     let tiltDeg = st.tilt ?? 60, spinSpeed = st.spinSpeed ?? 1, orbAng = 0;
     let searchHits = new Set<string>();
     let hovered: GNode | null = null;
@@ -1429,7 +1431,7 @@ class GraphView extends ItemView {
       discK += ((disc ? 1 : 0) - discK) * Math.min(1, dt * 1.6);
       ringK += (((expansion && S.rings) ? 1 : 0) - ringK) * Math.min(1, dt * 2);
       expK += ((expansion ? 1 : 0) - expK) * Math.min(1, dt * 2);
-      const nodeK = 1 - expK * 0.45 * (1 - Math.min(1, 900 / Math.max(N, 1)));
+      const nodeK = S.denseCore ? 1 : 1 - expK * 0.45 * (1 - Math.min(1, 900 / Math.max(N, 1)));
       const timeExp = expansion && isFinite(timeCut);
       const kk = timeExp ? countShown() : N;
       nodes.forEach((n, i) => {
@@ -1658,7 +1660,7 @@ class GraphView extends ItemView {
         const d = camera.position.distanceTo(nb.sprite.position);
         const clear = Math.min(1, Math.max(0, (d - r * 0.5) / (r * 1.3)));
         const fade = clear * clear * (3 - 2 * clear);
-        (nb.sprite.material as THREE.SpriteMaterial).opacity = 0.14 * S.nebula * nebK * (1 - 0.35 * expK) * fade * (selected.size === 0 ? 1 : selOk ? 1.6 : 0.12) * (spot ? 0.4 : 1);
+        (nb.sprite.material as THREE.SpriteMaterial).opacity = 0.14 * S.nebula * nebK * (1 - (S.denseCore ? 0 : 0.35) * expK) * fade * (selected.size === 0 ? 1 : selOk ? 1.6 : 0.12) * (spot ? 0.4 : 1);
         tmp.set(cx, cy, cz).project(camera);
         const vis = tmp.z < 1 && !anchor && !spot && fade > 0.15 && selOk && S.nebula > 0.05;
         nb.label.toggleClass("on", vis);

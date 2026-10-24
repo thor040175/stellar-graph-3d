@@ -55,7 +55,7 @@ Desktop only (it needs WebGL).
 
 ## Settings
 
-Language, start view, spin direction, color palette (including a color-blind safe one), age measure, hidden folders, pulse period, glow, nebula opacity, comet count, black hole threshold, time travel duration, and switches for the extra effects, performance mode, automatic throttling and sound. The ⚙ button in the graph opens them directly.
+Language, start view, spin direction, color palette (including a color-blind safe one), age measure, hidden folders, pulse period, glow, nebula opacity, comet count, black hole threshold, time travel duration, and switches for the extra effects, performance mode, automatic throttling, a dense bright core for expansion layout and sound. The ⚙ button in the graph opens them directly.
 
 ## Performance
 
