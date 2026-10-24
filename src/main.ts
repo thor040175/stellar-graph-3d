@@ -341,15 +341,13 @@ class GraphView extends ItemView {
   getIcon() { return "orbit"; }
 
   private storeKey() { return "stellar-graph-3d:" + this.app.vault.getName(); }
-  /** Einmalige Übernahme des Zustands aus den Vorab-Versionen (vor den Umbenennungen). */
-  private legacyKeys() { return ["galaxy-graph-3d:", "noekk-graph-3d:"].map((k) => k + this.app.vault.getName()); }
 
   async onOpen() {
     const root = this.contentEl;
     root.empty();
     root.addClass("n3d-root");
     root.style.padding = "0";
-    try { const raw = [this.storeKey(), ...this.legacyKeys()].map((k) => window.localStorage.getItem(k)).find((v) => v); if (raw) this.state = JSON.parse(raw); } catch { /* ohne Gedächtnis weiter */ }
+    try { const raw = window.localStorage.getItem(this.storeKey()); if (raw) this.state = JSON.parse(raw); } catch { /* ohne Gedächtnis weiter */ }
     const sv = this.plugin.settings.startView;
     if (sv !== "default") {
       this.state = { ...(this.state ?? {}), expansion: true, disc: sv === "spiral" };
@@ -413,6 +411,9 @@ class GraphView extends ItemView {
       deg: 0, mtime: f.stat.mtime, ctime: f.stat.ctime || f.stat.mtime,
     }));
     const N = nodes.length;
+    // Expansionsschalen: bei vielen Notizen flacher als linear, damit der Kern nicht ausbrennt
+    const shellP = 1 - 0.5 * Math.min(1, Math.max(0, (N - 600) / 2000));
+    const shell = (f: number) => 34 + 210 * Math.pow(Math.max(0, Math.min(1, f)), shellP);
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const idx = new Map(nodes.map((n, i) => [n.id, i]));
     const ageOf = (n: GNode) => (S.ageBasis === "ctime" ? n.ctime : n.mtime);
@@ -520,7 +521,7 @@ class GraphView extends ItemView {
 
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(w(), h()), S.glow, S.performance ? 0.3 : 0.45, 0.55));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(w(), h()), S.glow * Math.min(1, Math.pow(1500 / Math.max(N, 1), 0.4)), S.performance ? 0.3 : 0.45, 0.55));
     const lensPass = new ShaderPass(LENS_SHADER);
     lensPass.enabled = S.lens && !S.performance && holeNodes.length > 0;
     composer.addPass(lensPass);
@@ -624,7 +625,7 @@ class GraphView extends ItemView {
     const ringGroup = new THREE.Group();
     const ringMat = new THREE.LineBasicMaterial({ color: 0x7c86b8, transparent: true, opacity: 0, depthWrite: false });
     [0, 0.33, 0.66, 1].forEach((q) => {
-      const R = 34 + 210 * q, pts: THREE.Vector3[] = [];
+      const R = shell(q), pts: THREE.Vector3[] = [];
       for (let k = 0; k < 128; k++) pts.push(new THREE.Vector3(Math.cos((k / 128) * Math.PI * 2) * R, 0, Math.sin((k / 128) * Math.PI * 2) * R));
       ringGroup.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), ringMat));
     });
@@ -651,7 +652,7 @@ class GraphView extends ItemView {
     sim.force("orphan", orphanForce);
     // Expansion: das Älteste außen, das Frischeste im Kern
     const ageR = new Float32Array(N);
-    [...nodes.keys()].sort((a, b) => ageOf(nodes[a]) - ageOf(nodes[b])).forEach((i, r) => { ageR[i] = 34 + 210 * (1 - r / Math.max(1, N - 1)); });
+    [...nodes.keys()].sort((a, b) => ageOf(nodes[a]) - ageOf(nodes[b])).forEach((i, r) => { ageR[i] = shell(1 - r / Math.max(1, N - 1)); });
     const ageForce: any = (alpha: number) => {
       if (!expansion) return;
       nodes.forEach((n: any, i) => {
@@ -1436,7 +1437,7 @@ class GraphView extends ItemView {
         if (isOrphan[i]) P[i].set(x * ca - z * sa, y, x * sa + z * ca);
         else {
           const r0 = Math.hypot(x, y, z) || 1;
-          const tgt = timeExp ? (cr[i] < kk ? 34 + 210 * ((kk - 1 - cr[i]) / Math.max(1, N - 1)) : 34) : r0;
+          const tgt = timeExp ? (cr[i] < kk ? shell((kk - 1 - cr[i]) / Math.max(1, N - 1)) : shell(0)) : r0;
           radR[i] = Number.isNaN(radR[i]) ? r0 : radR[i] + (tgt - radR[i]) * Math.min(1, dt * 3);
           const sc = radR[i] / r0;
           P[i].set(x * sc, y * sc, z * sc);

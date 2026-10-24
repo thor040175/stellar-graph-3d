@@ -2,7 +2,17 @@
 
 A 3D graph view for [Obsidian](https://obsidian.md) that looks like a galaxy. Notes are stars, links are comets' paths, folders are nebulae.
 
-> Screenshots and a short demo GIF will go here.
+![A vault as a galaxy: folders are colored star clusters, hubs are bright cores](docs/hero.jpg)
+
+Time travel: watch the vault grow note by note.
+
+![Time travel through a vault of 2,600 notes](docs/timelapse.gif)
+
+Expansion layout with age colors: the oldest notes sit outside, the freshest in the core, and the biggest hubs turn into black holes with gravitational lensing.
+
+![Black holes and expansion layout](docs/black-holes.jpg)
+
+*All images show a fictional demo vault.*
 
 ## Features
 
@@ -49,7 +59,7 @@ Language, start view, spin direction, color palette (including a color-blind saf
 
 ## Performance
 
-Everything runs locally in your vault. For large vaults turn on *Performance mode*, or leave *Throttle effects automatically* on: the plugin lowers its effects when the frame rate stays low.
+Everything runs locally in your vault. Vaults with a few thousand notes run smoothly on a desktop GPU (a fictional test vault with about 2,600 notes stayed above 60 frames per second, one with about 4,800 notes above 35). On slower machines turn on *Performance mode*, or leave *Throttle effects automatically* on: the plugin lowers its effects when the frame rate stays low. *Show frame rate* in the settings displays the current numbers.
 
 ## Privacy
 
