@@ -45,7 +45,7 @@
 .n3d-cinehint{position:absolute;left:0;right:0;top:14px;text-align:center;font-size:11px;color:#9aa5d8;opacity:0;pointer-events:none}
 .n3d-cinehint.show{animation:n3dfade 5s ease forwards}
 @keyframes n3dfade{0%{opacity:0}12%{opacity:.8}75%{opacity:.8}100%{opacity:0}}
-.n3d-cinema .n3d-ui,.n3d-cinema .n3d-search,.n3d-cinema .n3d-legend,.n3d-cinema .n3d-time,.n3d-cinema .n3d-mini,.n3d-cinema .n3d-card{opacity:0 !important;pointer-events:none}
+.n3d-root.n3d-cinema .n3d-ui,.n3d-root.n3d-cinema .n3d-search,.n3d-root.n3d-cinema .n3d-legend,.n3d-root.n3d-cinema .n3d-time,.n3d-root.n3d-cinema .n3d-mini,.n3d-root.n3d-cinema .n3d-card{opacity:0;pointer-events:none}
 .n3d-row{position:relative}
 .n3d-row .dot{cursor:pointer;transition:transform .12s}
 .n3d-row .dot:hover{transform:scale(1.5)}
@@ -64,8 +64,11 @@
 .n3d-help .r{display:flex;gap:14px;padding:4px 0;font-size:12px;border-top:1px solid rgba(255,255,255,.06)}
 .n3d-help .k{flex:0 0 170px;color:#ffd9a0}
 .n3d-help .d{color:#c4cbef}
-.n3d-cinema .n3d-help{display:none !important}
+.n3d-root.n3d-cinema .n3d-help{display:none}
 .n3d-stats{position:absolute;left:50%;bottom:62px;transform:translateX(-50%);font:11px ui-monospace,Consolas,monospace;color:#9fe3b0;background:rgba(10,12,24,.65);padding:3px 12px;border-radius:999px;pointer-events:none;z-index:4;white-space:nowrap}
-.n3d-cinema .n3d-stats{display:none !important}
+.n3d-root.n3d-cinema .n3d-stats{display:none}
 .n3d-mini{cursor:grab;touch-action:none}
 .n3d-mini:active{cursor:grabbing}
+.n3d-root.view-content{padding:0}
+.n3d-hint{margin-top:6px;opacity:.7}
+.n3d-root .n3d-hidden{display:none}

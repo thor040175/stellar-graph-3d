@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- Fixes from the automated review: minimum Obsidian version is now 1.8.7 (revealLeaf, local storage API), the graph view is no longer detached when the plugin unloads, the settings heading uses the Setting API, inline styles replaced by CSS classes, and smaller code cleanups.
+- The remembered view state is now stored with the Obsidian local storage API.
+
 ## 1.0.1
 
 - The plugin id is now `stellar-graph` to follow the manifest rules (lowercase letters and hyphens only). Folder name for manual installs: `stellar-graph`.

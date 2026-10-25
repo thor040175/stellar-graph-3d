@@ -1,8 +1,8 @@
 {
   "id": "stellar-graph",
   "name": "Stellar Graph 3D",
-  "version": "1.0.1",
-  "minAppVersion": "1.5.0",
+  "version": "1.0.2",
+  "minAppVersion": "1.8.7",
   "description": "Explore your notes as a glowing 3D galaxy: comets along links, time travel, spiral mode, routes, constellations and more.",
   "author": "thor040175",
   "authorUrl": "https://github.com/thor040175",

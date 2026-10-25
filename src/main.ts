@@ -195,7 +195,7 @@ export default class StellarGraph3D extends Plugin {
   async open() {
     const leaf = this.app.workspace.getLeaf("tab");
     await leaf.setViewState({ type: VIEW_TYPE, active: true });
-    this.app.workspace.revealLeaf(leaf);
+    await this.app.workspace.revealLeaf(leaf);
   }
   async persist() {
     await this.saveData(this.settings);
@@ -204,7 +204,6 @@ export default class StellarGraph3D extends Plugin {
       this.app.workspace.getLeavesOfType(VIEW_TYPE).forEach((l) => (l.view as GraphView).refresh());
     }, 500);
   }
-  onunload() { this.app.workspace.detachLeavesOfType(VIEW_TYPE); }
 }
 
 class GraphSettingTab extends PluginSettingTab {
@@ -215,7 +214,7 @@ class GraphSettingTab extends PluginSettingTab {
     const s = this.plugin.settings;
     const t = makeT(resolveLang(s));
     const save = () => this.plugin.persist();
-    el.createEl("h2", { text: t("sTitle") });
+    new Setting(el).setName(t("sTitle")).setHeading();
 
     new Setting(el).setName(t("sLanguage")).setDesc(t("sLanguageD")).addDropdown((d) => d
       .addOption("auto", t("sLangAuto")).addOption("de", "Deutsch").addOption("en", "English")
@@ -232,20 +231,20 @@ class GraphSettingTab extends PluginSettingTab {
       .addOption("mtime", t("aMtime")).addOption("ctime", t("aCtime"))
       .setValue(s.ageBasis).onChange(async (v) => { s.ageBasis = v as Settings["ageBasis"]; await save(); }));
     new Setting(el).setName(t("sExclude")).setDesc(t("sExcludeD")).addText((x) => x.setPlaceholder("_archive, templates").setValue(s.excludeFolders).onChange(async (v) => { s.excludeFolders = v; await save(); }));
-    new Setting(el).setName(t("sPulse")).setDesc(t("sPulseD")).addSlider((x) => x.setLimits(1, 60, 1).setValue(s.pulseDays).setDynamicTooltip().onChange(async (v) => { s.pulseDays = v; await save(); }));
+    new Setting(el).setName(t("sPulse")).setDesc(t("sPulseD")).addSlider((x) => x.setLimits(1, 60, 1).setValue(s.pulseDays).onChange(async (v) => { s.pulseDays = v; await save(); }));
 
-    new Setting(el).setName(t("sTime")).setDesc(t("sTimeD")).addSlider((x) => x.setLimits(10, 300, 5).setValue(s.timeSeconds).setDynamicTooltip().onChange(async (v) => { s.timeSeconds = v; await save(); }));
-    new Setting(el).setName(t("sGlow")).setDesc(t("sGlowD")).addSlider((x) => x.setLimits(0, 1.5, 0.05).setValue(s.glow).setDynamicTooltip().onChange(async (v) => { s.glow = v; await save(); }));
-    new Setting(el).setName(t("sNebula")).setDesc(t("sNebulaD")).addSlider((x) => x.setLimits(0, 2, 0.1).setValue(s.nebula).setDynamicTooltip().onChange(async (v) => { s.nebula = v; await save(); }));
-    new Setting(el).setName(t("sComets")).setDesc(t("sCometsD")).addSlider((x) => x.setLimits(0, 600, 20).setValue(s.cometCount).setDynamicTooltip().onChange(async (v) => { s.cometCount = v; await save(); }));
-    new Setting(el).setName(t("sHoles")).setDesc(t("sHolesD")).addSlider((x) => x.setLimits(3, 40, 1).setValue(s.holeMinLinks).setDynamicTooltip().onChange(async (v) => { s.holeMinLinks = v; await save(); }));
+    new Setting(el).setName(t("sTime")).setDesc(t("sTimeD")).addSlider((x) => x.setLimits(10, 300, 5).setValue(s.timeSeconds).onChange(async (v) => { s.timeSeconds = v; await save(); }));
+    new Setting(el).setName(t("sGlow")).setDesc(t("sGlowD")).addSlider((x) => x.setLimits(0, 1.5, 0.05).setValue(s.glow).onChange(async (v) => { s.glow = v; await save(); }));
+    new Setting(el).setName(t("sNebula")).setDesc(t("sNebulaD")).addSlider((x) => x.setLimits(0, 2, 0.1).setValue(s.nebula).onChange(async (v) => { s.nebula = v; await save(); }));
+    new Setting(el).setName(t("sComets")).setDesc(t("sCometsD")).addSlider((x) => x.setLimits(0, 600, 20).setValue(s.cometCount).onChange(async (v) => { s.cometCount = v; await save(); }));
+    new Setting(el).setName(t("sHoles")).setDesc(t("sHolesD")).addSlider((x) => x.setLimits(3, 40, 1).setValue(s.holeMinLinks).onChange(async (v) => { s.holeMinLinks = v; await save(); }));
 
     const toggles: [keyof Settings, string][] = [
       ["shootingStars", "Shooting"], ["darkMatter", "Dark"], ["moons", "Moons"], ["planets", "Planets"], ["rings", "Rings"], ["lens", "Lens"], ["performance", "Perf"], ["cameraReverse", "CamRev"], ["autoThrottle", "Auto"], ["subClusters", "Sub"], ["showStats", "Stats"], ["denseCore", "Dense"], ["sound", "Sound"],
     ];
     toggles.forEach(([key, k]) => new Setting(el).setName(t("s" + k)).setDesc(t("s" + k + "D"))
       .addToggle((x) => x.setValue(s[key] as boolean).onChange(async (v) => { (s[key] as boolean) = v; await save(); })));
-    new Setting(el).setName(t("sVolume")).addSlider((x) => x.setLimits(0, 1, 0.05).setValue(s.volume).setDynamicTooltip().onChange(async (v) => { s.volume = v; await save(); }));
+    new Setting(el).setName(t("sVolume")).addSlider((x) => x.setLimits(0, 1, 0.05).setValue(s.volume).onChange(async (v) => { s.volume = v; await save(); }));
   }
 }
 
@@ -261,7 +260,7 @@ const ageColor = (time: number) => {
   return AGE_STOPS[k].clone().lerp(AGE_STOPS[k + 1], f - k);
 };
 const saveBlob = (blob: Blob, name: string) => {
-  const a = document.createElement("a");
+  const a = createEl("a");
   a.href = URL.createObjectURL(blob);
   a.download = name;
   a.click();
@@ -270,7 +269,7 @@ const saveBlob = (blob: Blob, name: string) => {
 const stamp = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
 
 function glowTexture() {
-  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const c = createEl("canvas"); c.width = c.height = 128;
   const g = c.getContext("2d")!;
   const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
   gr.addColorStop(0, "rgba(255,255,255,0.6)"); gr.addColorStop(0.45, "rgba(255,255,255,0.18)"); gr.addColorStop(1, "rgba(255,255,255,0)");
@@ -278,7 +277,7 @@ function glowTexture() {
   return new THREE.CanvasTexture(c);
 }
 function rippleTexture() {
-  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const c = createEl("canvas"); c.width = c.height = 128;
   const g = c.getContext("2d")!;
   const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
   gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.72, "rgba(255,255,255,0)");
@@ -287,7 +286,7 @@ function rippleTexture() {
   return new THREE.CanvasTexture(c);
 }
 function diskTexture() {
-  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const c = createEl("canvas"); c.width = c.height = 256;
   const g = c.getContext("2d")!;
   const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
   gr.addColorStop(0, "rgba(255,230,190,0)"); gr.addColorStop(0.44, "rgba(255,230,190,0)");
@@ -348,8 +347,7 @@ class GraphView extends ItemView {
     const root = this.contentEl;
     root.empty();
     root.addClass("n3d-root");
-    root.style.padding = "0";
-    try { const raw = window.localStorage.getItem(this.storeKey()); if (raw) this.state = JSON.parse(raw); } catch { /* ohne Gedächtnis weiter */ }
+    try { const raw = this.app.loadLocalStorage(this.storeKey()) as Saved | null; if (raw) this.state = raw; } catch { /* ohne Gedächtnis weiter */ }
     const sv = this.plugin.settings.startView;
     if (sv !== "default") {
       this.state = { ...(this.state ?? {}), expansion: true, disc: sv === "spiral" };
@@ -373,7 +371,7 @@ class GraphView extends ItemView {
   refresh() { this.scheduleRebuild(60); }
 
   private teardown() {
-    cancelAnimationFrame(this.raf);
+    window.cancelAnimationFrame(this.raf);
     this.ro?.disconnect();
     this.disposeFns.forEach((f) => f());
     this.disposeFns = [];
@@ -754,7 +752,7 @@ class GraphView extends ItemView {
     let focusNode: GNode | null = null;
     let colorMode: "folder" | "age" = st.colorMode ?? "folder";
     let expansion = !!st.expansion;
-    let disc = !!st.disc, discK = disc ? 1 : 0, discT = 0, ringK = 0, expK = expansion ? 1 : 0;
+    let disc = !!st.disc, discK = disc ? 1 : 0, ringK = 0, expK = expansion ? 1 : 0;
     // Große Vaults: Nebel dünner, damit sie nicht zu einem Farbnebel verschmelzen
     const nebK = S.denseCore ? 1 : Math.min(1, Math.pow(900 / Math.max(N, 1), 0.3));
     let tiltDeg = st.tilt ?? 60, spinSpeed = st.spinSpeed ?? 1, orbAng = 0;
@@ -852,7 +850,7 @@ class GraphView extends ItemView {
           startAmbient(audioCtx, master);
         } catch { audioCtx = null; return null; }
       }
-      if (audioCtx.state === "suspended") audioCtx.resume();
+      if (audioCtx.state === "suspended") void audioCtx.resume();
       return audioCtx;
     };
     const ping = (freq: number, vol = 0.07, dur = 0.8) => {
@@ -917,8 +915,7 @@ class GraphView extends ItemView {
       row.appendText(f);
     });
     refreshLegend();
-    const hint = legend.createDiv({ text: t("pulseHint", S.pulseDays) });
-    hint.style.cssText = "margin-top:6px;opacity:.7";
+    legend.createDiv({ cls: "n3d-hint", text: t("pulseHint", S.pulseDays) });
 
     const ui = root.createDiv({ cls: "n3d-ui" });
     const mkBtn = (text: string, fn: () => void) => { const b = ui.createEl("button", { text }); b.onclick = fn; return b; };
@@ -968,15 +965,15 @@ class GraphView extends ItemView {
     statsEl.style.display = S.showStats ? "" : "none";
     let fpsEma = 60;
     const help = root.createDiv({ cls: "n3d-help" });
-    help.style.display = "none";
+    help.addClass("n3d-hidden");
     help.createDiv({ cls: "h", text: t("helpTitle") });
     for (let k = 1; k <= 11; k++) {
       const [key, desc] = t("help" + k).split("|");
       const r = help.createDiv({ cls: "r" });
       r.createSpan({ cls: "k", text: key }); r.createSpan({ cls: "d", text: desc });
     }
-    help.onclick = () => { help.style.display = "none"; };
-    mkBtn("?", () => { help.style.display = help.style.display === "none" ? "" : "none"; }).title = t("helpTip");
+    help.onclick = () => { help.addClass("n3d-hidden"); };
+    mkBtn("?", () => { help.toggleClass("n3d-hidden", !help.hasClass("n3d-hidden")); }).title = t("helpTip");
     focusBtn.title = t("focusTip");
     colorBtn.title = t("colorTipBtn");
     expBtn.title = t("expansionTip");
@@ -1007,17 +1004,17 @@ class GraphView extends ItemView {
     const sIn = search.createEl("input", { type: "text", placeholder: t("search") });
     sIn.title = t("searchTip");
     const chip = search.createDiv({ cls: "n3d-chip" });
-    chip.style.display = "none";
+    chip.addClass("n3d-hidden");
     const sList = search.createDiv({ cls: "n3d-results" });
     const goTo = (n: GNode) => { const i = idx.get(n.id)!; flyToNode(i); spawnRipple(i, performance.now() / 1000); };
 
     const clearSpot = () => {
       spot = null; spotPairs = null; routeMode = false; routeA = -1; conEdges = []; lastRoute = null; activeTag = null;
-      conGeo.setDrawRange(0, 0); conLabel.removeClass("on"); chip.style.display = "none"; tourQ.length = 0;
+      conGeo.setDrawRange(0, 0); conLabel.removeClass("on"); chip.addClass("n3d-hidden"); tourQ.length = 0;
       routeBtn.removeClass("active");
     };
     chip.onclick = clearSpot;
-    const showChip = (text: string) => { chip.setText("✦ " + text + "  ×"); chip.style.display = ""; };
+    const showChip = (text: string) => { chip.setText("✦ " + text + "  ×"); chip.removeClass("n3d-hidden"); };
 
     const shortest = (a: number, b: number): number[] | null => {
       const prev = new Int32Array(N).fill(-2); prev[a] = -1;
@@ -1217,8 +1214,8 @@ class GraphView extends ItemView {
       const body = card.createDiv({ cls: "b", text: cardCache.get(n.id) ?? "…" });
       if (!cardCache.has(n.id)) {
         const f = this.app.vault.getAbstractFileByPath(n.path);
-        if (f instanceof TFile) this.app.vault.cachedRead(f).then((txt) => {
-          const clean = txt.replace(/^---[\s\S]*?---\s*/, "").replace(/[#>*_`]|\[\[|\]\]|\!\[/g, "").replace(/\s+/g, " ").trim().slice(0, 190);
+        if (f instanceof TFile) void this.app.vault.cachedRead(f).then((txt) => {
+          const clean = txt.replace(/^---[\s\S]*?---\s*/, "").replace(/[#>*_`]|\[\[|\]\]|!\[/g, "").replace(/\s+/g, " ").trim().slice(0, 190);
           cardCache.set(n.id, clean || t("cardEmpty"));
           if (cardKey === "n:" + n.id) body.setText(clean || t("cardEmpty"));
         });
@@ -1286,12 +1283,12 @@ class GraphView extends ItemView {
         new Notice(t("dmCreated", d.name));
         ping(PENTATONIC[0] * 2, 0.1, 1.4);
         rippleAt(dmP[k], DM_COL.clone().lerp(new THREE.Color(0xffffff), 0.4), performance.now() / 1000);
-        openBeside(file.path, false);
+        void openBeside(file.path, false);
       } catch { new Notice(t("dmFail", d.name)); }
     };
     const onUp = (e: PointerEvent) => {
       if (Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
-      if (!hovered && dmHover >= 0 && !routeMode) { createFromDarkMatter(dmHover); return; }
+      if (!hovered && dmHover >= 0 && !routeMode) { void createFromDarkMatter(dmHover); return; }
       if (!hovered) return;
       const i = idx.get(hovered.id)!;
       spawnRipple(i, performance.now() / 1000);
@@ -1305,12 +1302,12 @@ class GraphView extends ItemView {
       }
       focusNode = hovered;
       if (focusOn) flyToNode(i);
-      openBeside(hovered.path, e.ctrlKey || e.metaKey);
+      void openBeside(hovered.path, e.ctrlKey || e.metaKey);
     };
     const onDbl = () => { if (hovered && !routeMode) flyToNode(idx.get(hovered.id)!); };
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || root.clientWidth === 0) return;
-      if (help.style.display !== "none") help.style.display = "none";
+      if (!help.hasClass("n3d-hidden")) help.addClass("n3d-hidden");
       else if (cinema.on) exitCinema(); else if (spot || routeMode) clearSpot();
     };
     dom.addEventListener("pointermove", onMove);
@@ -1342,7 +1339,7 @@ class GraphView extends ItemView {
         selected: [...selected], focusOn, colorMode, expansion, disc, colors: custom, tilt: tiltDeg, spinSpeed, pos,
         query: sIn.value, route: lastRoute ?? undefined, tag: activeTag ?? undefined, sig: layoutSig, mini: [miniYaw, miniPitch],
       };
-      try { window.localStorage.setItem(this.storeKey(), JSON.stringify(this.state)); } catch { /* egal */ }
+      try { this.app.saveLocalStorage(this.storeKey(), this.state); } catch { /* egal */ }
     };
     const saveTimer = window.setInterval(saveState, 5000);
 
@@ -1355,7 +1352,7 @@ class GraphView extends ItemView {
 
     const takePhoto = () => {
       const src = renderer.domElement;
-      const c = document.createElement("canvas"); c.width = src.width; c.height = src.height;
+      const c = createEl("canvas"); c.width = src.width; c.height = src.height;
       const g = c.getContext("2d")!;
       const grd = g.createRadialGradient(c.width * 0.5, c.height * 0.4, 0, c.width * 0.5, c.height * 0.4, Math.max(c.width, c.height) * 0.75);
       grd.addColorStop(0, "#12162b"); grd.addColorStop(1, "#05060d");
@@ -1382,7 +1379,7 @@ class GraphView extends ItemView {
     };
 
     const frame = () => {
-      this.raf = requestAnimationFrame(frame);
+      this.raf = window.requestAnimationFrame(frame);
       if (!root.isConnected || root.clientWidth === 0) return;
       const nowT = performance.now() / 1000;
       const rawDt = nowT - lastT;
@@ -1806,7 +1803,7 @@ class GraphView extends ItemView {
       dom.removeEventListener("dblclick", onDbl);
       controls.dispose();
       window.clearTimeout(ambientTimer);
-      if (audioCtx) { try { audioCtx.close(); } catch { /* egal */ } }
+      if (audioCtx) { try { void audioCtx.close(); } catch { /* egal */ } }
     });
   }
 }
