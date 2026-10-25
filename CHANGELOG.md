@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+- The settings page now uses the declarative settings API of Obsidian 1.13, so the settings show up in the Obsidian settings search. This raises the minimum Obsidian version to 1.13.0. Older versions stay on 1.0.3.
+
 ## 1.0.3
 
 - Cleaner code for the automated review: typed forces and no `any` in the layout code, fewer unnecessary type assertions, promises handled explicitly in the settings.

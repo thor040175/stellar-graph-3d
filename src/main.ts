@@ -1,4 +1,4 @@
-import { App, ItemView, Notice, Plugin, PluginSettingTab, Setting, WorkspaceLeaf, TFile, getAllTags, moment, normalizePath } from "obsidian";
+import { App, ItemView, Notice, Plugin, PluginSettingTab, WorkspaceLeaf, TFile, getAllTags, moment, normalizePath, SettingDefinition, SettingDefinitionItem } from "obsidian";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
@@ -209,45 +209,44 @@ export default class StellarGraph3D extends Plugin {
 
 class GraphSettingTab extends PluginSettingTab {
   constructor(app: App, private plugin: StellarGraph3D) { super(app, plugin); }
-  display() {
-    const el = this.containerEl;
-    el.empty();
-    const s = this.plugin.settings;
-    const t = makeT(resolveLang(s));
-    const save = () => this.plugin.persist();
-    new Setting(el).setName(t("sTitle")).setHeading();
 
-    new Setting(el).setName(t("sLanguage")).setDesc(t("sLanguageD")).addDropdown((d) => d
-      .addOption("auto", t("sLangAuto")).addOption("de", "Deutsch").addOption("en", "English")
-      .setValue(s.language).onChange(async (v) => { s.language = v as Settings["language"]; await save(); this.display(); }));
-    new Setting(el).setName(t("sStart")).setDesc(t("sStartD")).addDropdown((d) => d
-      .addOption("default", t("vDefault")).addOption("expansion", t("vExpansion")).addOption("spiral", t("vSpiral"))
-      .setValue(s.startView).onChange(async (v) => { s.startView = v as Settings["startView"]; await save(); }));
-    new Setting(el).setName(t("sSpin")).setDesc(t("sSpinD")).addToggle((x) => x.setValue(s.spinClockwise).onChange(async (v) => { s.spinClockwise = v; await save(); }));
+  getControlValue(key: string): unknown {
+    return (this.plugin.settings as unknown as Record<string, unknown>)[key];
+  }
 
-    new Setting(el).setName(t("sPalette")).setDesc(t("sPaletteD")).addDropdown((d) => d
-      .addOption("galaxy", t("pGalaxy")).addOption("nebula", t("pNebula")).addOption("mono", t("pMono")).addOption("cvd", t("pCvd"))
-      .setValue(s.palette).onChange(async (v) => { s.palette = v; await save(); }));
-    new Setting(el).setName(t("sAge")).setDesc(t("sAgeD")).addDropdown((d) => d
-      .addOption("mtime", t("aMtime")).addOption("ctime", t("aCtime"))
-      .setValue(s.ageBasis).onChange(async (v) => { s.ageBasis = v as Settings["ageBasis"]; await save(); }));
-    new Setting(el).setName(t("sExclude")).setDesc(t("sExcludeD")).addText((x) => x.setPlaceholder("_archive, templates").setValue(s.excludeFolders).onChange(async (v) => { s.excludeFolders = v; await save(); }));
-    new Setting(el).setName(t("sPulse")).setDesc(t("sPulseD")).addSlider((x) => x.setLimits(1, 60, 1).setValue(s.pulseDays).onChange(async (v) => { s.pulseDays = v; await save(); }));
+  setControlValue(key: string, value: unknown): void {
+    (this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
+    void this.plugin.persist();
+    if (key === "language") this.update();
+  }
 
-    new Setting(el).setName(t("sTime")).setDesc(t("sTimeD")).addSlider((x) => x.setLimits(10, 300, 5).setValue(s.timeSeconds).onChange(async (v) => { s.timeSeconds = v; await save(); }));
-    new Setting(el).setName(t("sGlow")).setDesc(t("sGlowD")).addSlider((x) => x.setLimits(0, 1.5, 0.05).setValue(s.glow).onChange(async (v) => { s.glow = v; await save(); }));
-    new Setting(el).setName(t("sNebula")).setDesc(t("sNebulaD")).addSlider((x) => x.setLimits(0, 2, 0.1).setValue(s.nebula).onChange(async (v) => { s.nebula = v; await save(); }));
-    new Setting(el).setName(t("sComets")).setDesc(t("sCometsD")).addSlider((x) => x.setLimits(0, 600, 20).setValue(s.cometCount).onChange(async (v) => { s.cometCount = v; await save(); }));
-    new Setting(el).setName(t("sHoles")).setDesc(t("sHolesD")).addSlider((x) => x.setLimits(3, 40, 1).setValue(s.holeMinLinks).onChange(async (v) => { s.holeMinLinks = v; await save(); }));
-
-    const toggles: [keyof Settings, string][] = [
-      ["shootingStars", "Shooting"], ["darkMatter", "Dark"], ["moons", "Moons"], ["planets", "Planets"], ["rings", "Rings"], ["lens", "Lens"], ["performance", "Perf"], ["cameraReverse", "CamRev"], ["autoThrottle", "Auto"], ["subClusters", "Sub"], ["showStats", "Stats"], ["denseCore", "Dense"], ["sound", "Sound"],
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    const t = makeT(resolveLang(this.plugin.settings));
+    const toggle = (key: keyof Settings, k: string): SettingDefinition => ({
+      name: t("s" + k), desc: t("s" + k + "D"), control: { type: "toggle", key },
+    });
+    const slider = (key: keyof Settings, nameKey: string, min: number, max: number, step: number): SettingDefinition => ({
+      name: t("s" + nameKey), desc: t("s" + nameKey + "D"), control: { type: "slider", key, min, max, step },
+    });
+    return [
+      { name: t("sLanguage"), desc: t("sLanguageD"), control: { type: "dropdown", key: "language", options: { auto: t("sLangAuto"), de: "Deutsch", en: "English" } } },
+      { name: t("sStart"), desc: t("sStartD"), control: { type: "dropdown", key: "startView", options: { default: t("vDefault"), expansion: t("vExpansion"), spiral: t("vSpiral") } } },
+      toggle("spinClockwise", "Spin"),
+      { name: t("sPalette"), desc: t("sPaletteD"), control: { type: "dropdown", key: "palette", options: { galaxy: t("pGalaxy"), nebula: t("pNebula"), mono: t("pMono"), cvd: t("pCvd") } } },
+      { name: t("sAge"), desc: t("sAgeD"), control: { type: "dropdown", key: "ageBasis", options: { mtime: t("aMtime"), ctime: t("aCtime") } } },
+      { name: t("sExclude"), desc: t("sExcludeD"), control: { type: "text", key: "excludeFolders", placeholder: "_archive, templates" } },
+      slider("pulseDays", "Pulse", 1, 60, 1),
+      slider("timeSeconds", "Time", 10, 300, 5),
+      slider("glow", "Glow", 0, 1.5, 0.05),
+      slider("nebula", "Nebula", 0, 2, 0.1),
+      slider("cometCount", "Comets", 0, 600, 20),
+      slider("holeMinLinks", "Holes", 3, 40, 1),
+      toggle("shootingStars", "Shooting"), toggle("darkMatter", "Dark"), toggle("moons", "Moons"), toggle("planets", "Planets"),
+      toggle("rings", "Rings"), toggle("lens", "Lens"), toggle("performance", "Perf"), toggle("cameraReverse", "CamRev"),
+      toggle("autoThrottle", "Auto"), toggle("subClusters", "Sub"), toggle("showStats", "Stats"), toggle("denseCore", "Dense"),
+      toggle("sound", "Sound"),
+      { name: t("sVolume"), control: { type: "slider", key: "volume", min: 0, max: 1, step: 0.05 } },
     ];
-    for (const [key, k] of toggles) {
-      new Setting(el).setName(t("s" + k)).setDesc(t("s" + k + "D"))
-        .addToggle((x) => x.setValue(s[key] as boolean).onChange((v) => { (s[key] as boolean) = v; void save(); }));
-    }
-    new Setting(el).setName(t("sVolume")).addSlider((x) => x.setLimits(0, 1, 0.05).setValue(s.volume).onChange(async (v) => { s.volume = v; await save(); }));
   }
 }
 
