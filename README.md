@@ -59,6 +59,14 @@ Not yet in the community plugin list. Manual installation:
 
 Desktop only (it needs WebGL).
 
+## Compatibility
+
+Developed and tested on **Windows** with the Obsidian desktop app. **macOS and Linux have not been tested yet.** The plugin only uses standard web technology (WebGL, the Canvas API and the Obsidian plugin API), so it should work there, but I cannot promise it. Photo and video capture and the optional sound rely on browser features of Obsidian's Electron runtime and may behave differently on other systems. If something does not work on your system, please open an issue and mention your operating system and Obsidian version.
+
+Not supported: Obsidian mobile.
+
+The ⚙ button in the graph uses an internal Obsidian function to open the settings. If a future Obsidian version changes it, open the settings the usual way (*Settings → Community plugins → Stellar Graph 3D*).
+
 ## Settings
 
 Language, start view, spin direction, color palette (including a color-blind safe one), age measure, hidden folders, pulse period, glow, nebula opacity, comet count, black hole threshold, time travel duration, and switches for the extra effects, performance mode, automatic throttling, a dense bright core for expansion layout and sound. The ⚙ button in the graph opens them directly.
