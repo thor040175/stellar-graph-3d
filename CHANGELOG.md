@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- The plugin id is now `stellar-graph` to follow the manifest rules (lowercase letters and hyphens only). Folder name for manual installs: `stellar-graph`.
+
 ## 1.0.0
 
 First public version.

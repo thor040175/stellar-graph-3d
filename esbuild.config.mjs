@@ -4,12 +4,12 @@ import path from "path";
 import { builtinModules } from "module";
 
 const watch = process.argv[2] === "watch";
-// Optional: Pfad zu einem Vault. Dann wird nach jedem Build in <vault>/.obsidian/plugins/stellar-graph-3d kopiert.
+// Optional: Pfad zu einem Vault. Dann wird nach jedem Build in <vault>/.obsidian/plugins/stellar-graph kopiert.
 const vault = process.env.STELLAR_GRAPH_VAULT;
 
 const deploy = () => {
   if (!vault) return;
-  const out = path.join(vault, ".obsidian", "plugins", "stellar-graph-3d");
+  const out = path.join(vault, ".obsidian", "plugins", "stellar-graph");
   fs.mkdirSync(out, { recursive: true });
   for (const f of ["main.js", "manifest.json", "styles.css"]) fs.copyFileSync(f, path.join(out, f));
 };

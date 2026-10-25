@@ -53,7 +53,7 @@ Click a button's tooltip or press `?` in the graph for a quick guide.
 Not yet in the community plugin list. Manual installation:
 
 1. Download `main.js`, `manifest.json` and `styles.css` from the latest release.
-2. Put them in `<your vault>/.obsidian/plugins/stellar-graph-3d/`.
+2. Put them in `<your vault>/.obsidian/plugins/stellar-graph/`.
 3. Reload Obsidian and enable **Stellar Graph 3D** under *Settings → Community plugins*.
 4. Open the graph from the ribbon icon or the command **Open 3D graph**.
 

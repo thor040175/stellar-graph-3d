@@ -9,7 +9,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 // @ts-ignore
 import { forceSimulation, forceLink, forceManyBody, forceCenter } from "d3-force-3d";
 
-const VIEW_TYPE = "stellar-graph-3d";
+const VIEW_TYPE = "stellar-graph";
 const PALETTES: Record<string, number[]> = {
   galaxy: [0x7aa2ff, 0xff7ab8, 0x7affc8, 0xffd27a, 0xb07aff, 0xff9a7a, 0x7ae6ff, 0xc8ff7a, 0xff7a7a, 0x9aa5c8],
   nebula: [0xa78bfa, 0xf0abfc, 0x93c5fd, 0x67e8f9, 0xfda4af, 0xc4b5fd, 0x86efac, 0xfde68a, 0xfdba74, 0x94a3b8],
@@ -342,7 +342,7 @@ class GraphView extends ItemView {
   getDisplayText() { return "Stellar Graph 3D"; }
   getIcon() { return "orbit"; }
 
-  private storeKey() { return "stellar-graph-3d:" + this.app.vault.getName(); }
+  private storeKey() { return "stellar-graph:" + this.app.vault.getName(); }
 
   async onOpen() {
     const root = this.contentEl;
