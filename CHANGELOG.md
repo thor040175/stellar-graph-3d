@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3
+
+- Cleaner code for the automated review: typed forces and no `any` in the layout code, fewer unnecessary type assertions, promises handled explicitly in the settings.
+- Release files are now built by a GitHub Actions workflow and carry an artifact attestation, so everyone can verify that they come from this repository.
+
 ## 1.0.2
 
 - Fixes from the automated review: minimum Obsidian version is now 1.8.7 (revealLeaf, local storage API), the graph view is no longer detached when the plugin unloads, the settings heading uses the Setting API, inline styles replaced by CSS classes, and smaller code cleanups.

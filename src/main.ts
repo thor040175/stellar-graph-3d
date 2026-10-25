@@ -6,7 +6,6 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-// @ts-ignore
 import { forceSimulation, forceLink, forceManyBody, forceCenter } from "d3-force-3d";
 
 const VIEW_TYPE = "stellar-graph";
@@ -36,7 +35,9 @@ const DEFAULTS: Settings = {
   sound: false, volume: 0.5, autoThrottle: true, subClusters: true, showStats: false, denseCore: false,
 };
 
-interface GNode { id: string; path: string; name: string; folder: string; deg: number; mtime: number; ctime: number; x?: number; y?: number; z?: number; }
+interface GNode { id: string; path: string; name: string; folder: string; deg: number; mtime: number; ctime: number; x?: number; y?: number; z?: number; vx?: number; vy?: number; vz?: number; }
+interface AppWithSettings { setting?: { open?: () => void; openTabById?: (id: string) => void } }
+type SimForce = ((alpha: number) => void) & { initialize?: () => void };
 interface GLink { source: string | GNode; target: string | GNode; }
 interface Saved {
   cam?: number[]; target?: number[]; selected?: string[]; focusOn?: boolean;
@@ -186,7 +187,7 @@ export default class StellarGraph3D extends Plugin {
   private refreshTimer = 0;
 
   async onload() {
-    this.settings = Object.assign({}, DEFAULTS, await this.loadData());
+    this.settings = Object.assign({}, DEFAULTS, (await this.loadData()) as Partial<Settings> | null);
     this.registerView(VIEW_TYPE, (leaf) => new GraphView(leaf, this));
     this.addRibbonIcon("orbit", makeT(resolveLang(this.settings))("openGraph"), () => this.open());
     this.addCommand({ id: "open", name: makeT(resolveLang(this.settings))("openGraph"), callback: () => this.open() });
@@ -242,8 +243,10 @@ class GraphSettingTab extends PluginSettingTab {
     const toggles: [keyof Settings, string][] = [
       ["shootingStars", "Shooting"], ["darkMatter", "Dark"], ["moons", "Moons"], ["planets", "Planets"], ["rings", "Rings"], ["lens", "Lens"], ["performance", "Perf"], ["cameraReverse", "CamRev"], ["autoThrottle", "Auto"], ["subClusters", "Sub"], ["showStats", "Stats"], ["denseCore", "Dense"], ["sound", "Sound"],
     ];
-    toggles.forEach(([key, k]) => new Setting(el).setName(t("s" + k)).setDesc(t("s" + k + "D"))
-      .addToggle((x) => x.setValue(s[key] as boolean).onChange(async (v) => { (s[key] as boolean) = v; await save(); })));
+    for (const [key, k] of toggles) {
+      new Setting(el).setName(t("s" + k)).setDesc(t("s" + k + "D"))
+        .addToggle((x) => x.setValue(s[key] as boolean).onChange((v) => { (s[key] as boolean) = v; void save(); }));
+    }
     new Setting(el).setName(t("sVolume")).addSlider((x) => x.setLimits(0, 1, 0.05).setValue(s.volume).onChange(async (v) => { s.volume = v; await save(); }));
   }
 }
@@ -293,7 +296,7 @@ function diskTexture() {
   gr.addColorStop(0.5, "rgba(255,240,215,1)"); gr.addColorStop(0.68, "rgba(255,190,120,0.55)");
   gr.addColorStop(1, "rgba(255,150,80,0)");
   g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
-  const cg = (g as any).createConicGradient?.(0, 128, 128);
+  const cg = typeof g.createConicGradient === "function" ? g.createConicGradient(0, 128, 128) : null;
   if (cg) {
     cg.addColorStop(0, "rgba(0,0,0,1)"); cg.addColorStop(0.25, "rgba(0,0,0,0.35)"); cg.addColorStop(0.5, "rgba(0,0,0,1)");
     cg.addColorStop(0.78, "rgba(0,0,0,0.4)"); cg.addColorStop(1, "rgba(0,0,0,1)");
@@ -444,7 +447,7 @@ class GraphView extends ItemView {
     const folders = [...new Set(nodes.map((n) => n.folder))].sort();
     const palette = PALETTES[S.palette] ?? PALETTES.galaxy;
     const custom: Record<string, string> = { ...(st.colors ?? {}) };
-    const colorOf = (f: string) => new THREE.Color((custom[f] ?? palette[folders.indexOf(f) % palette.length]) as THREE.ColorRepresentation);
+    const colorOf = (f: string) => new THREE.Color(custom[f] ?? palette[folders.indexOf(f) % palette.length]);
     const baseCols = nodes.map((n) => colorOf(n.folder));
     const orphans = nodes.filter((n) => n.deg === 0);
     const isOrphan = nodes.map((n) => n.deg === 0);
@@ -634,14 +637,14 @@ class GraphView extends ItemView {
 
     // ---- Layout ----
     const sim = forceSimulation(nodes, 3)
-      .force("link", forceLink(links).id((d: GNode) => d.id).distance(34).strength(0.4))
+      .force("link", forceLink<GNode, GLink>(links).id((d) => d.id).distance(34).strength(0.4))
       .force("charge", forceManyBody().strength(-140))
       .force("center", forceCenter(0, 0, 0))
       .alphaDecay(0.02);
     const layoutSig = JSON.stringify([S.subClusters, S.ageBasis]);
     if (restored > N * 0.5) sim.alpha(st.sig === layoutSig ? 0.12 : 0.7);
-    const orphanForce: any = (alpha: number) => {
-      orphans.forEach((n: any, k) => {
+    const orphanForce: SimForce = (alpha: number) => {
+      orphans.forEach((n, k) => {
         const r = Math.hypot(n.x ?? 0, n.y ?? 0, n.z ?? 0) || 1;
         const target = 190 + ((k * 37) % 90);
         const f = ((target - r) / r) * 0.12 * alpha;
@@ -653,9 +656,9 @@ class GraphView extends ItemView {
     // Expansion: das Älteste außen, das Frischeste im Kern
     const ageR = new Float32Array(N);
     [...nodes.keys()].sort((a, b) => ageOf(nodes[a]) - ageOf(nodes[b])).forEach((i, r) => { ageR[i] = shell(1 - r / Math.max(1, N - 1)); });
-    const ageForce: any = (alpha: number) => {
+    const ageForce: SimForce = (alpha: number) => {
       if (!expansion) return;
-      nodes.forEach((n: any, i) => {
+      nodes.forEach((n, i) => {
         if (isOrphan[i]) return;
         const r = Math.hypot(n.x ?? 0, n.y ?? 0, n.z ?? 0) || 1;
         const f = ((ageR[i] - r) / r) * 0.8 * alpha;
@@ -671,14 +674,14 @@ class GraphView extends ItemView {
       if (parts.length >= 3 && !isOrphan[i]) { const key = parts.slice(0, -1).join("/"); (groups.get(key) ?? groups.set(key, []).get(key)!).push(i); }
     });
     const clusterGroups = [...groups.values()].filter((g) => g.length >= 3);
-    const clusterForce: any = (alpha: number) => {
+    const clusterForce: SimForce = (alpha: number) => {
       if (!S.subClusters) return;
       clusterGroups.forEach((g) => {
         let cx = 0, cy = 0, cz = 0;
         g.forEach((i) => { cx += nodes[i].x ?? 0; cy += nodes[i].y ?? 0; cz += nodes[i].z ?? 0; });
         cx /= g.length; cy /= g.length; cz /= g.length;
         g.forEach((i) => {
-          const n: any = nodes[i];
+          const n = nodes[i];
           n.vx = (n.vx ?? 0) + (cx - (n.x ?? 0)) * 0.25 * alpha; n.vy = (n.vy ?? 0) + (cy - (n.y ?? 0)) * 0.25 * alpha; n.vz = (n.vz ?? 0) + (cz - (n.z ?? 0)) * 0.25 * alpha;
         });
       });
@@ -891,7 +894,7 @@ class GraphView extends ItemView {
     allRow.onclick = () => { selected.clear(); refreshLegend(); };
     const recolor = () => {
       applyColorMode(); refreshLegend();
-      nebulae.forEach((nb) => { if (nb) (nb.sprite.material as THREE.SpriteMaterial).color.copy(colorOf(nb.folder)); });
+      nebulae.forEach((nb) => { if (nb) nb.sprite.material.color.copy(colorOf(nb.folder)); });
       disks.forEach((d) => d.mat.color.copy(colorOf(d.n.folder)).lerp(new THREE.Color(0xffffff), 0.45));
     };
     resetRow.onclick = () => { Object.keys(custom).forEach((k) => delete custom[k]); recolor(); };
@@ -982,7 +985,7 @@ class GraphView extends ItemView {
     videoBtn.title = t("videoTip");
     soundBtn.title = t("soundTip");
     mkBtn("⚙", () => {
-      const setting = (this.app as any).setting;
+      const setting = (this.app as unknown as AppWithSettings).setting;
       setting?.open?.();
       setting?.openTabById?.(this.plugin.manifest.id);
     }).title = t("settings");
@@ -1657,7 +1660,7 @@ class GraphView extends ItemView {
         let cx = 0, cy = 0, cz = 0, k = 0;
         nb.members.forEach((i) => { if (appear[i] > 0.5) { cx += P[i].x; cy += P[i].y; cz += P[i].z; k++; } });
         const selOk = selected.size === 0 || selected.has(nb.folder);
-        if (k < 3) { (nb.sprite.material as THREE.SpriteMaterial).opacity = 0; nb.label.removeClass("on"); return; }
+        if (k < 3) { nb.sprite.material.opacity = 0; nb.label.removeClass("on"); return; }
         cx /= k; cy /= k; cz /= k;
         let r = 0;
         nb.members.forEach((i) => { if (appear[i] > 0.5) r += Math.hypot(P[i].x - cx, P[i].y - cy, P[i].z - cz); });
@@ -1667,7 +1670,7 @@ class GraphView extends ItemView {
         const d = camera.position.distanceTo(nb.sprite.position);
         const clear = Math.min(1, Math.max(0, (d - r * 0.5) / (r * 1.3)));
         const fade = clear * clear * (3 - 2 * clear);
-        (nb.sprite.material as THREE.SpriteMaterial).opacity = 0.14 * S.nebula * nebK * (1 - (S.denseCore ? 0 : 0.35) * expK) * fade * (selected.size === 0 ? 1 : selOk ? 1.6 : 0.12) * (spot ? 0.4 : 1);
+        nb.sprite.material.opacity = 0.14 * S.nebula * nebK * (1 - (S.denseCore ? 0 : 0.35) * expK) * fade * (selected.size === 0 ? 1 : selOk ? 1.6 : 0.12) * (spot ? 0.4 : 1);
         tmp.set(cx, cy, cz).project(camera);
         const vis = tmp.z < 1 && !anchor && !spot && fade > 0.15 && selOk && S.nebula > 0.05;
         nb.label.toggleClass("on", vis);
@@ -1698,7 +1701,7 @@ class GraphView extends ItemView {
       if (halo.visible) {
         halo.position.copy(P[hi]);
         halo.scale.setScalar(50 + 8 * Math.sin(nowT * 1.8));
-        (halo.material as THREE.SpriteMaterial).color.copy(baseCols[hi]).lerp(new THREE.Color(0xffffff), 0.5);
+        halo.material.color.copy(baseCols[hi]).lerp(new THREE.Color(0xffffff), 0.5);
       }
 
       // Ripples
@@ -1707,7 +1710,7 @@ class GraphView extends ItemView {
         const sp2 = ripples[r].sprite;
         if (age >= 1) { scene.remove(sp2); (sp2.material as THREE.Material).dispose(); ripples.splice(r, 1); continue; }
         sp2.scale.setScalar(10 + age * 120);
-        (sp2.material as THREE.SpriteMaterial).opacity = 0.95 * (1 - age) * (1 - age);
+        sp2.material.opacity = 0.95 * (1 - age) * (1 - age);
       }
 
       // Sternschnuppe
